@@ -22,7 +22,7 @@ class FlutterSecureStorageWeb extends FlutterSecureStoragePlatform {
     required String key,
     required Map<String, String> options,
   }) =>
-      Future.value(html.window.localStorage
+      Future.value(html.window.sessionStorage
           .containsKey(options[_PUBLIC_KEY]! + "." + key));
 
   @override
@@ -31,21 +31,21 @@ class FlutterSecureStorageWeb extends FlutterSecureStoragePlatform {
     required Map<String, String> options,
   }) =>
       Future.value(
-          html.window.localStorage.remove(options[_PUBLIC_KEY]! + "." + key));
+          html.window.sessionStorage.remove(options[_PUBLIC_KEY]! + "." + key));
 
   @override
   Future<void> deleteAll({
     required Map<String, String> options,
   }) =>
       Future.sync(
-          () => html.window.localStorage.removeWhere((key, value) => true));
+          () => html.window.sessionStorage.removeWhere((key, value) => true));
 
   @override
   Future<String?> read({
     required String key,
     required Map<String, String> options,
   }) async {
-    final value = html.window.localStorage[options[_PUBLIC_KEY]! + "." + key];
+    final value = html.window.sessionStorage[options[_PUBLIC_KEY]! + "." + key];
 
     return await _decryptValue(value, options);
   }
@@ -56,8 +56,8 @@ class FlutterSecureStorageWeb extends FlutterSecureStoragePlatform {
   }) async {
     final map = <String, String>{};
     final prefix = options[_PUBLIC_KEY]! + ".";
-    for (int j = 0; j < html.window.localStorage.length; j++) {
-      final entry = html.window.localStorage.entries.elementAt(j);
+    for (int j = 0; j < html.window.sessionStorage.length; j++) {
+      final entry = html.window.sessionStorage.entries.elementAt(j);
       if (!entry.key.startsWith(prefix)) {
         continue;
       }
@@ -82,8 +82,8 @@ class FlutterSecureStorageWeb extends FlutterSecureStoragePlatform {
     late html.CryptoKey encryptionKey;
     final key = options[_PUBLIC_KEY]!;
 
-    if (html.window.localStorage.containsKey(key)) {
-      final jwk = base64Decode(html.window.localStorage[key]!);
+    if (html.window.sessionStorage.containsKey(key)) {
+      final jwk = base64Decode(html.window.sessionStorage[key]!);
 
       encryptionKey = await js_util.promiseToFuture<html.CryptoKey>(
         crypto.importKey("raw", jwk, algorithm, false, ["encrypt", "decrypt"]),
@@ -97,7 +97,7 @@ class FlutterSecureStorageWeb extends FlutterSecureStoragePlatform {
 
       final jsonWebKey = await js_util
           .promiseToFuture<ByteBuffer>(crypto.exportKey("raw", encryptionKey));
-      html.window.localStorage[key] = base64Encode(jsonWebKey.asUint8List());
+      html.window.sessionStorage[key] = base64Encode(jsonWebKey.asUint8List());
     }
 
     return encryptionKey;
@@ -129,7 +129,7 @@ class FlutterSecureStorageWeb extends FlutterSecureStoragePlatform {
     final encoded =
         base64Encode(iv) + "." + base64Encode(encryptedContent.asUint8List());
 
-    html.window.localStorage[options[_PUBLIC_KEY]! + "." + key] = encoded;
+    html.window.sessionStorage[options[_PUBLIC_KEY]! + "." + key] = encoded;
   }
 
   Future<String?> _decryptValue(
